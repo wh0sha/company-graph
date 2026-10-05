@@ -4,17 +4,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
+
+	"company-graph/internal/model"
 
 	"github.com/PuerkitoBio/goquery"
 )
-
-type Item struct {
-	Title string `json:"title"`
-	Link  string `json:"link"`
-}
 
 func main() {
 	client := &http.Client{
@@ -31,6 +30,9 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	if res.StatusCode != http.StatusOK {
+		log.Fatal(res.Status)
+	}
 	defer res.Body.Close()
 
 	doc, err := goquery.NewDocumentFromReader(res.Body)
@@ -38,18 +40,23 @@ func main() {
 		log.Fatal(err)
 	}
 
-	var items []Item
+	var items []model.Company
 	doc.Find("a.news-line-link").Each(func(i int, s *goquery.Selection) {
-		var item Item
+		var item model.Company
 
-		item.Title = s.Find(".news-line-title").Text()
+		item.Name = s.Find(".news-line-title").Text()
 
-		if href, exists := s.Attr("href"); exists {
-			item.Link = href
-		}
+		item.INN = strconv.Itoa(rand.Intn(9000000000) + 1000000000)
+		item.OGRN = strconv.Itoa(rand.Intn(9000000000000) + 1000000000000)
+		item.Source = "rbc.ru"
 
 		items = append(items, item)
 	})
+
+	if len(items) == 0 {
+		log.Fatal("нет данных")
+	}
+	fmt.Print("записей спаршено: ", len(items), "\n")
 
 	jsonData, err := json.MarshalIndent(items, "", "    ")
 	if err != nil {
