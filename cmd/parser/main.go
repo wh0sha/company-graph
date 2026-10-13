@@ -1,16 +1,15 @@
 package main
 
 import (
-	"encoding/json"
+	"company-graph/internal/model"
+	"company-graph/internal/storage"
+	"context"
 	"fmt"
 	"log"
 	"math/rand"
 	"net/http"
-	"os"
 	"strconv"
 	"time"
-
-	"company-graph/internal/model"
 
 	"github.com/PuerkitoBio/goquery"
 )
@@ -58,15 +57,18 @@ func main() {
 	}
 	fmt.Print("записей спаршено: ", len(items), "\n")
 
-	jsonData, err := json.MarshalIndent(items, "", "    ")
+	ctx := context.Background()
+
+	connString := "postgres://user:password@localhost:5432/companies?sslmode=disable"
+
+	store, err := storage.NewStorage(ctx, connString)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Не удалось подлючиться к бд: %v", err)
 	}
 
-	filename := "result.json"
-	err = os.WriteFile(filename, jsonData, 0644)
+	err = store.SaveCompanies(ctx, items)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Не удалось сохранить компании в бд: %v", err)
 	}
 
 	fmt.Println("over")
